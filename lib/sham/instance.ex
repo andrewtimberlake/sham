@@ -56,8 +56,12 @@ defmodule Sham.Instance do
     {:reply, {:ok, port}, state}
   end
 
-  def handle_call({:expect, method, path, callback}, _from, %{expectations: expectations} = state) do
-    expectations = [{:expect, method, path, callback, make_ref(), :waiting} | expectations]
+  def handle_call(
+        {expectation, method, path, callback},
+        _from,
+        %{expectations: expectations} = state
+      ) do
+    expectations = [{expectation, method, path, callback, make_ref(), :waiting} | expectations]
 
     {:reply, :ok, %{state | expectations: expectations}}
   end
@@ -65,7 +69,9 @@ defmodule Sham.Instance do
   def handle_call({:get_callback, method, path}, _from, %{expectations: expectations} = state) do
     expectations
     |> Enum.reverse()
+    |> Enum.sort(&sort_expectations/2)
     |> Enum.find(fn
+      {:expect_once, _, _, _callback, _ref, state} when state != :waiting -> false
       {_, ^method, ^path, _callback, _ref, _state} -> true
       {_, nil, ^path, _callback, _ref, _state} -> true
       {_, nil, nil, _callback, _ref, _state} -> true
@@ -76,7 +82,7 @@ defmodule Sham.Instance do
         {:reply, {method, path, callback, ref}, state}
 
       _ ->
-        {:reply, nil, state}
+        {:reply, did_exceed?(expectations, method, path), state}
     end
   end
 
@@ -84,11 +90,8 @@ defmodule Sham.Instance do
     expectations =
       expectations
       |> Enum.map(fn
-        {:expect_once, _method, _path, _callback, ^ref, _state} ->
-          nil
-
-        {:expect, method, path, callback, ^ref, :waiting} ->
-          {:expect, method, path, callback, ref, result}
+        {expectation, method, path, callback, ^ref, :waiting} ->
+          {expectation, method, path, callback, ref, result}
 
         other ->
           other
@@ -100,6 +103,12 @@ defmodule Sham.Instance do
 
   def handle_call({:put_error, error}, _from, %{errors: errors} = state) do
     {:reply, :ok, %{state | errors: [error | errors]}}
+  end
+
+  def handle_call(:pass, _from, %{expectations: expectations} = state) do
+    expectations = Enum.map(expectations, &put_elem(&1, 5, :called))
+
+    {:reply, :ok, %{state | errors: [], expectations: expectations}}
   end
 
   def handle_call(
@@ -121,6 +130,34 @@ defmodule Sham.Instance do
         {:stop, :normal, parse_expectation_results(expectations, state), nil}
     end
   end
+
+  defp did_exceed?(expectations, method, path) do
+    expectations
+    |> Enum.filter(fn
+      {:expect_once, ^method, ^path, _callback, _ref, _state} -> true
+      {:expect_once, nil, nil, _callback, _ref, _state} -> true
+      _ -> false
+    end)
+    |> case do
+      [] -> nil
+      [_ | _] -> :exceeded
+    end
+  end
+
+  # Sort expectations so that specified method and path always takes precedence over unspecified
+  defp sort_expectations({_, nil, nil, _, _, _}, {_, nil, nil, _, _, _}),
+    do: true
+
+  defp sort_expectations({_, method, path, _, _, _}, {_, nil, nil, _, _, _})
+       when not is_nil(method) and not is_nil(path),
+       do: true
+
+  defp sort_expectations({_, nil, nil, _, _, _}, {_, method, path, _, _, _})
+       when not is_nil(method) and not is_nil(path),
+       do: false
+
+  defp sort_expectations(_, _),
+    do: true
 
   defp parse_expectation_results([], _state) do
     :ok
@@ -145,7 +182,7 @@ defmodule Sham.Instance do
 
   defp parse_expectation_results(
          [
-           {:expect, method, path, _callback, _ref, {:exception, exception}} | _tail
+           {:expect, _method, _path, _callback, _ref, {:exception, exception}} | _tail
          ],
          _state
        ) do

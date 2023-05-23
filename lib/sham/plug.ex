@@ -19,8 +19,13 @@ defmodule Sham.Plug do
             Plug.Conn.resp(conn, 500, "")
         end
 
-      _ ->
-        error = "Unexpected request #{method} #{request_path}"
+      :exceeded ->
+        error = "Exceeded expected requests to Sham: #{method} #{request_path}"
+        GenServer.call(pid, {:put_error, error})
+        Plug.Conn.resp(conn, 500, error)
+
+      nil ->
+        error = "Unexpected request to Sham: #{method} #{request_path}"
         GenServer.call(pid, {:put_error, error})
         Plug.Conn.resp(conn, 500, error)
     end
