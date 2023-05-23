@@ -11,10 +11,8 @@ An Elixir mock HTTP(S) server useful for testing HTTP(S) clients.
     Plug.Conn.resp(conn, 200, "Hello world")
   end)
 
-  {:ok, {{_, 200, 'OK'}, _, body}} =
-    :httpc.request(:get, {"https://localhost:#{sham.port}", []}, [], [])
+  {:ok, 200, response_body} = HttpClient.get("https://localhost:#{sham.port}")
 
-  response_body = IO.iodata_to_binary(body)
   assert response_body == "Hello world"
 ```
 
