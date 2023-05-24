@@ -19,9 +19,19 @@ jobs:
 
     strategy:
       matrix:
-        elixir: [1.14.5, 1.15.0]
-        erlang: [23.3, 24.3, 25.3, 26.0]
+        elixir: [1.12.3, 1.13.4, 1.14.5, 1.15.0]
+        erlang: [22.3, 23.3, 24.3, 25.3, 26.0]
         exclude:
+          - elixir: 1.12.3
+            erlang: 25.3
+          - elixir: 1.12.3
+            erlang: 26.0
+          - elixir: 1.13.5
+            erlang: 26.0
+          - elixir: 1.14.0
+            erlang: 22.3
+          - elixir: 1.15.0
+            erlang: 22.3
           - elixir: 1.15.0
             erlang: 23.3
 
