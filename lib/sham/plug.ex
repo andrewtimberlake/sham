@@ -1,7 +1,7 @@
 defmodule Sham.Plug do
-  def init([pid]), do: pid
+  def init(opts), do: opts
 
-  def call(%{method: method, request_path: request_path} = conn, pid) do
+  def call(%{method: method, request_path: request_path} = conn, pid: pid) do
     case GenServer.call(pid, {:get_callback, method, request_path}) do
       {_method, _request_path, callback, ref} ->
         conn = Plug.Conn.fetch_query_params(conn)

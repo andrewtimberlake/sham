@@ -24,7 +24,7 @@ defmodule Sham.Instance do
              certfile <-
                Keyword.get(opts, :certfile, Application.app_dir(:sham, "priv/ssl/cert.pem")),
              {:certfile, true} <- {:certfile, File.exists?(certfile)} do
-          Plug.Cowboy.https(Sham.Plug, [self()],
+          Plug.Cowboy.https(Sham.Plug, [pid: self()],
             ref: cowboy_ref,
             port: port,
             keyfile: keyfile,
@@ -38,7 +38,7 @@ defmodule Sham.Instance do
             {:error, "certfile does not exist at #{Keyword.get(opts, :certfile)}"}
         end
       else
-        Plug.Cowboy.http(Sham.Plug, [self()], ref: cowboy_ref, port: port)
+        Plug.Cowboy.http(Sham.Plug, [pid: self()], ref: cowboy_ref, port: port)
       end
 
     case result do
