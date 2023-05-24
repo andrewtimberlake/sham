@@ -11,7 +11,7 @@ defmodule ShamTest do
       Sham.expect(sham, fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}")
@@ -27,10 +27,58 @@ defmodule ShamTest do
       Sham.expect(sham, fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       assert {:ok, 200, body} = get("https://localhost:#{sham.port}")
+      assert body == "Hello world"
+    end
+
+    test "HTTPS (http/1.1) expectation" do
+      %Sham{} = sham = Sham.start(ssl: true)
+
+      Sham.expect(sham, fn conn ->
+        assert conn.method == "GET"
+        assert conn.request_path == "/"
+        Plug.Conn.send_resp(conn, 200, "Hello world")
+      end)
+
+      {:ok, %Mint.HTTP1{} = conn} =
+        Mint.HTTP.connect(:https, "localhost", sham.port,
+          mode: :passive,
+          protocols: [:http1],
+          transport_opts: [
+            verify: :verify_none
+          ]
+        )
+
+      {:ok, conn, ref} = Mint.HTTP.request(conn, "GET", "/", [], "")
+      assert {:ok, 200, body} = receive_response(conn, ref, 100, [])
+
+      assert body == "Hello world"
+    end
+
+    test "HTTPS (h2) expectation" do
+      %Sham{} = sham = Sham.start(ssl: true)
+
+      Sham.expect(sham, fn conn ->
+        assert conn.method == "GET"
+        assert conn.request_path == "/"
+        Plug.Conn.send_resp(conn, 200, "Hello world")
+      end)
+
+      {:ok, %Mint.HTTP2{} = conn} =
+        Mint.HTTP.connect(:https, "localhost", sham.port,
+          mode: :passive,
+          protocols: [:http2],
+          transport_opts: [
+            verify: :verify_none
+          ]
+        )
+
+      {:ok, conn, ref} = Mint.HTTP.request(conn, "GET", "/", [], "")
+      assert {:ok, 200, body} = receive_response(conn, ref, 100, [])
+
       assert body == "Hello world"
     end
 
@@ -50,7 +98,7 @@ defmodule ShamTest do
       Sham.expect(sham, "POST", "/endpoint", fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/endpoint"
-        Plug.Conn.resp(conn, 201, "Hello world")
+        Plug.Conn.send_resp(conn, 201, "Hello world")
       end)
 
       {:ok, 201, body} = post("http://localhost:#{sham.port}/endpoint", "")
@@ -81,7 +129,7 @@ defmodule ShamTest do
       Sham.expect(sham, fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/endpoint"
-        Plug.Conn.resp(conn, 201, "Hello world")
+        Plug.Conn.send_resp(conn, 201, "Hello world")
       end)
 
       on_exit({Sham.Instance, sham.pid}, fn ->
@@ -96,7 +144,7 @@ defmodule ShamTest do
       Sham.expect(sham, "POST", "/endpoint", fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/endpoint"
-        Plug.Conn.resp(conn, 201, "Hello world")
+        Plug.Conn.send_resp(conn, 201, "Hello world")
       end)
 
       on_exit({Sham.Instance, sham.pid}, fn ->
@@ -111,7 +159,7 @@ defmodule ShamTest do
       Sham.expect(sham, "POST", "/endpoint", fn conn ->
         assert conn.method == "POST"
         assert conn.request_path == "/endpoint"
-        Plug.Conn.resp(conn, 201, "Hello world")
+        Plug.Conn.send_resp(conn, 201, "Hello world")
       end)
 
       on_exit({Sham.Instance, sham.pid}, fn ->
@@ -128,7 +176,7 @@ defmodule ShamTest do
       Sham.expect_once(sham, fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}")
@@ -149,13 +197,13 @@ defmodule ShamTest do
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world 2")
+        Plug.Conn.send_resp(conn, 200, "Hello world 2")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
@@ -177,11 +225,11 @@ defmodule ShamTest do
       sham = Sham.start(ssl: false)
 
       Sham.expect_once(sham, fn conn ->
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.expect_once(sham, "GET", "/path", fn conn ->
-        Plug.Conn.resp(conn, 200, "Hello world 2")
+        Plug.Conn.send_resp(conn, 200, "Hello world 2")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}/")
@@ -205,11 +253,11 @@ defmodule ShamTest do
       sham = Sham.start(ssl: false)
 
       Sham.stub(sham, fn conn ->
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.stub(sham, "GET", "/path", fn conn ->
-        Plug.Conn.resp(conn, 200, "Hello world 2")
+        Plug.Conn.send_resp(conn, 200, "Hello world 2")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}")
@@ -226,13 +274,13 @@ defmodule ShamTest do
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world 2")
+        Plug.Conn.send_resp(conn, 200, "Hello world 2")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
@@ -256,7 +304,7 @@ defmodule ShamTest do
       sham = Sham.start(ssl: false)
 
       Sham.expect(sham, fn conn ->
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.pass(sham)
@@ -272,13 +320,13 @@ defmodule ShamTest do
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world")
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
       Sham.expect_once(sham, "GET", "/path", fn conn ->
         assert conn.method == "GET"
         assert conn.request_path == "/path"
-        Plug.Conn.resp(conn, 200, "Hello world 2")
+        Plug.Conn.send_resp(conn, 200, "Hello world 2")
       end)
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
@@ -297,13 +345,15 @@ defmodule ShamTest do
     end
   end
 
-  defp request(uri, method, body \\ "")
+  defp request(uri, method, body, opts)
 
-  defp request(uri, method, body) when is_binary(uri), do: request(URI.parse(uri), method, body)
+  defp request(uri, method, body, opts) when is_binary(uri),
+    do: request(URI.parse(uri), method, body, opts)
 
-  defp request(%URI{scheme: scheme, host: host, port: port, path: path}, method, body) do
+  defp request(%URI{scheme: scheme, host: host, port: port, path: path}, method, body, opts) do
     scheme = String.to_existing_atom(scheme)
     transport_opts = if(scheme == :https, do: [verify: :verify_none], else: [])
+    transport_opts = Keyword.merge(transport_opts, Keyword.get(opts, :transport_opts, []))
 
     with {:ok, conn} <-
            Mint.HTTP.connect(scheme, host, port,
@@ -345,11 +395,11 @@ defmodule ShamTest do
     end
   end
 
-  defp get(uri) do
-    request(uri, "GET")
+  defp get(uri, opts \\ []) do
+    request(uri, "GET", "", opts)
   end
 
-  defp post(uri, body) do
-    request(uri, "POST", body)
+  defp post(uri, body, opts \\ []) do
+    request(uri, "POST", body, opts)
   end
 end
