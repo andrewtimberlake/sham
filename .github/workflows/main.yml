@@ -15,31 +15,19 @@ permissions:
 jobs:
   build:
     name: Build and test
-    runs-on: ubuntu20
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        elixir: [1.12.3, 1.13.4, 1.14.5, 1.15.4]
-        erlang: [22.3, 23.3, 24.3, 25.3, 26.0]
-        exclude:
-          - elixir: 1.12.3
-            erlang: 25.3
-          - elixir: 1.12.3
-            erlang: 26.0
-          - elixir: 1.13.5
-            erlang: 26.0
-          - elixir: 1.14.5
-            erlang: 22.3
-          - elixir: 1.15.0
-            erlang: 22.3
-          - elixir: 1.15.0
-            erlang: 23.3
+        elixir: ['1.14.5', '1.15.4']
+        erlang: ['24.3', '25.3', '26.0']
 
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
-        uses: erlef/setup-beam@988e02bfe678367a02564f65ca2e37726dc0268f
+        uses: erlef/setup-beam@v1
         with:
+          version-type: 'loose'
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.erlang }}
       - name: Restore dependencies cache
