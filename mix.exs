@@ -1,8 +1,8 @@
 defmodule Sham.MixProject do
   use Mix.Project
 
-  @github_url "https://github.com/TeamSitesure/sham"
-  @version "0.1.0"
+  @github_url "https://github.com/andrewtimberlake/sham"
+  @version "1.0.0"
 
   def project do
     [
