@@ -246,6 +246,51 @@ defmodule ShamTest do
                  GenServer.call(sham.pid, :on_exit)
       end)
     end
+
+    test "Expectation with no request (no method or path)" do
+      sham = Sham.start()
+
+      Sham.expect_once(sham, fn conn ->
+        assert conn.method == "POST"
+        assert conn.request_path == "/endpoint"
+        Plug.Conn.send_resp(conn, 201, "Hello world")
+      end)
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:error, "No HTTP request was received by Sham"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+
+    test "Expectation with no request" do
+      sham = Sham.start()
+
+      Sham.expect_once(sham, "POST", "/endpoint", fn conn ->
+        assert conn.method == "POST"
+        assert conn.request_path == "/endpoint"
+        Plug.Conn.send_resp(conn, 201, "Hello world")
+      end)
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:error, "No HTTP POST request was received by Sham at /endpoint"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+
+    test "HTTPS expectation with no request" do
+      sham = Sham.start(ssl: true)
+
+      Sham.expect_once(sham, "POST", "/endpoint", fn conn ->
+        assert conn.method == "POST"
+        assert conn.request_path == "/endpoint"
+        Plug.Conn.send_resp(conn, 201, "Hello world")
+      end)
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:error, "No HTTPS POST request was received by Sham at /endpoint"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
   end
 
   describe "stub" do

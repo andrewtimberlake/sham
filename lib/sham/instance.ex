@@ -164,9 +164,10 @@ defmodule Sham.Instance do
   end
 
   defp parse_expectation_results(
-         [{:expect, method, path, _callback, _ref, :waiting} | _tail],
+         [{expectation, method, path, _callback, _ref, :waiting} | _tail],
          state
-       ) do
+       )
+       when expectation in [:expect, :expect_once] do
     {:error,
      "No #{scheme(state)}#{method_error(method)} request was received by Sham#{path_error(path)}"}
   end
