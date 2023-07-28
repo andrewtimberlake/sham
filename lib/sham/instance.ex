@@ -1,7 +1,9 @@
 defmodule Sham.Instance do
+  @moduledoc false
   use GenServer, restart: :transient
 
   defmodule State do
+    @moduledoc false
     defstruct port: nil, cowboy_ref: nil, opts: nil, expectations: nil, errors: nil
   end
 

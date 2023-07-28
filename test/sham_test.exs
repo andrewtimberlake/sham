@@ -440,11 +440,11 @@ defmodule ShamTest do
     end
   end
 
-  defp get(uri, opts \\ []) do
+  def get(uri, opts \\ []) do
     request(uri, "GET", "", opts)
   end
 
-  defp post(uri, body, opts \\ []) do
+  def post(uri, body, opts \\ []) do
     request(uri, "POST", body, opts)
   end
 end

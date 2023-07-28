@@ -1,4 +1,5 @@
 defmodule Sham.Plug do
+  @moduledoc false
   def init(opts), do: opts
 
   def call(%{method: method, request_path: request_path} = conn, pid: pid) do
