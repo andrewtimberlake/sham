@@ -325,7 +325,7 @@ defmodule ShamTest do
   end
 
   describe "stub" do
-    test "Basic expectation" do
+    test "callback" do
       sham = Sham.start(ssl: false)
 
       Sham.stub(sham, fn conn ->
@@ -344,32 +344,26 @@ defmodule ShamTest do
       assert body == "Hello world"
     end
 
-    test "Stacked expect_once" do
+    test "callback with assertion error" do
       sham = Sham.start(ssl: false)
 
-      Sham.expect_once(sham, "GET", "/path", fn conn ->
-        assert conn.method == "GET"
+      Sham.stub(sham, fn conn ->
         assert conn.request_path == "/path"
         Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
-      Sham.expect_once(sham, "GET", "/path", fn conn ->
-        assert conn.method == "GET"
-        assert conn.request_path == "/path"
-        Plug.Conn.send_resp(conn, 200, "Hello world 2")
+      Sham.stub(sham, "GET", "/path", fn conn ->
+        Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
+
+      # Should raise an assertion error
+      get("http://localhost:#{sham.port}/")
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
       assert body == "Hello world"
 
-      assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
-      assert body == "Hello world 2"
-
-      assert {:ok, 500, "Exceeded expected requests to Sham: GET /path"} =
-               get("http://localhost:#{sham.port}/path")
-
       on_exit({Sham.Instance, sham.pid}, fn ->
-        assert {:error, "Exceeded expected requests to Sham: GET /path"} =
+        assert {:exception, {%ExUnit.AssertionError{}, _}} =
                  GenServer.call(sham.pid, :on_exit)
       end)
     end
@@ -387,36 +381,6 @@ defmodule ShamTest do
 
       on_exit({Sham.Instance, sham.pid}, fn ->
         assert :ok = GenServer.call(sham.pid, :on_exit)
-      end)
-    end
-
-    test "Stacked expect_once" do
-      sham = Sham.start(ssl: false)
-
-      Sham.expect_once(sham, "GET", "/path", fn conn ->
-        assert conn.method == "GET"
-        assert conn.request_path == "/path"
-        Plug.Conn.send_resp(conn, 200, "Hello world")
-      end)
-
-      Sham.expect_once(sham, "GET", "/path", fn conn ->
-        assert conn.method == "GET"
-        assert conn.request_path == "/path"
-        Plug.Conn.send_resp(conn, 200, "Hello world 2")
-      end)
-
-      assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
-      assert body == "Hello world"
-
-      assert {:ok, 200, body} = get("http://localhost:#{sham.port}/path")
-      assert body == "Hello world 2"
-
-      assert {:ok, 500, "Exceeded expected requests to Sham: GET /path"} =
-               get("http://localhost:#{sham.port}/path")
-
-      on_exit({Sham.Instance, sham.pid}, fn ->
-        assert {:error, "Exceeded expected requests to Sham: GET /path"} =
-                 GenServer.call(sham.pid, :on_exit)
       end)
     end
   end
