@@ -17,7 +17,7 @@ defmodule Sham.Plug do
           exception ->
             stacktrace = __STACKTRACE__
             GenServer.call(pid, {:put_result, ref, {:exception, {exception, stacktrace}}})
-            Plug.Conn.resp(conn, 500, "")
+            Plug.Conn.resp(conn, 500, Exception.format(:error, exception, stacktrace))
         end
 
       :exceeded ->

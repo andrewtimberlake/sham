@@ -9,8 +9,6 @@ defmodule ShamTest do
       sham = Sham.start(ssl: false)
 
       Sham.expect(sham, fn conn ->
-        assert conn.method == "GET"
-        assert conn.request_path == "/"
         Plug.Conn.send_resp(conn, 200, "Hello world")
       end)
 
@@ -19,6 +17,22 @@ defmodule ShamTest do
 
       assert {:ok, 200, body} = get("http://localhost:#{sham.port}")
       assert body == "Hello world"
+    end
+
+    test "Basic expectation with assertion in callback" do
+      sham = Sham.start(ssl: false)
+
+      Sham.expect(sham, fn conn ->
+        assert conn.request_path == "/"
+        Plug.Conn.send_resp(conn, 200, "Hello world")
+      end)
+
+      get("http://localhost:#{sham.port}/wat")
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:exception, {%ExUnit.AssertionError{}, _}} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
     end
 
     test "HTTPS expectation" do
@@ -115,7 +129,8 @@ defmodule ShamTest do
       end)
 
       capture_log(fn ->
-        {:ok, 500, ""} = get("http://localhost:#{sham.port}/")
+        assert {:ok, 500, <<"** (RuntimeError)", _::binary>>} =
+                 get("http://localhost:#{sham.port}/")
       end)
 
       on_exit({Sham.Instance, sham.pid}, fn ->
@@ -187,6 +202,22 @@ defmodule ShamTest do
 
       on_exit({Sham.Instance, sham.pid}, fn ->
         assert {:error, "Exceeded expected requests to Sham: GET /"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+
+    test "Basic expectation with assertion error in callback" do
+      sham = Sham.start(ssl: false)
+
+      Sham.expect_once(sham, fn conn ->
+        assert conn.request_path == "/wat"
+        Plug.Conn.send_resp(conn, 200, "Hello world")
+      end)
+
+      get("http://localhost:#{sham.port}")
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:exception, {%ExUnit.AssertionError{}, _}} =
                  GenServer.call(sham.pid, :on_exit)
       end)
     end
