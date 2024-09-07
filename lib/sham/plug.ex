@@ -25,6 +25,13 @@ defmodule Sham.Plug do
         GenServer.call(pid, {:put_error, error})
         Plug.Conn.resp(conn, 500, error)
 
+      :expect_none ->
+        error =
+          "A request was received by Sham when none were expected: #{method} #{request_path}"
+
+        GenServer.call(pid, {:put_error, error})
+        Plug.Conn.resp(conn, 500, error)
+
       nil ->
         error = "Unexpected request to Sham: #{method} #{request_path}"
         GenServer.call(pid, {:put_error, error})

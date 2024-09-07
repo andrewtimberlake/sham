@@ -59,6 +59,19 @@ defmodule Sham.Instance do
   end
 
   def handle_call(
+        {:expect_none, method, path},
+        _from,
+        %{expectations: expectations} = state
+      ) do
+    expectations = [
+      {:expect_none, method, path, nil, make_ref(), :waiting}
+      | expectations
+    ]
+
+    {:reply, :ok, %{state | expectations: expectations}}
+  end
+
+  def handle_call(
         {expectation, method, path, callback},
         _from,
         %{expectations: expectations} = state
@@ -80,6 +93,9 @@ defmodule Sham.Instance do
       {_, _, _, _, _, _} -> false
     end)
     |> case do
+      {:expect_none, _method, _path, _callback, _ref, _state} ->
+        {:reply, :expect_none, state}
+
       {_expectation, method, path, callback, ref, _state} ->
         {:reply, {method, path, callback, ref}, state}
 

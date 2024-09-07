@@ -191,6 +191,36 @@ defmodule Sham do
   end
 
   @doc """
+  Expect no requests to the Sham instance using any method or path.
+
+  ## Examples
+
+      sham = Sham.start()
+      Sham.expect_none(sham)
+      # Sending a request will result in an assertion error
+      ShamTest.get("http://localhost:#\{sham.port}/hello")
+      {:ok, 500, "A request was received by Sham when none were expected: GET /hello"}
+      ** (ExUnit.AssertionError) A request was received by Sham when none were expected: GET /hello
+  """
+  @spec expect_none(Sham.t()) :: Sham.t()
+  def expect_none(%{pid: pid} = sham) do
+    :ok = GenServer.call(pid, {:expect_none, nil, nil})
+    sham
+  end
+
+  @doc """
+  Expect no requests to the Sham instance for a given method and path.
+
+  - `method` - The HTTP method to expect. Should be one of `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`, `"HEAD"`, or `"OPTIONS"` or (Anything Plug supports).
+  - `path` - The path to expect
+  """
+  @spec expect_none(Sham.t(), method :: String.t(), path :: String.t()) :: Sham.t()
+  def expect_none(%{pid: pid} = sham, method, path) do
+    :ok = GenServer.call(pid, {:expect_none, method, path})
+    sham
+  end
+
+  @doc """
   Provide a callback to handle any requests to the Sham instance without assertions.
 
   No exceptions will be raised if no requests are sent to the sham port.

@@ -324,6 +324,52 @@ defmodule ShamTest do
     end
   end
 
+  describe "expect_none" do
+    test "Basic expectation" do
+      sham = Sham.start(ssl: false)
+
+      Sham.expect_none(sham)
+
+      assert {:ok, 500, "A request was received by Sham when none were expected: GET /"} =
+               get("http://localhost:#{sham.port}")
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:error, "A request was received by Sham when none were expected: GET /"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+
+    test "Expectation with a request (no method or path)" do
+      sham = Sham.start()
+
+      Sham.expect_none(sham)
+
+      assert {:ok, 500, "A request was received by Sham when none were expected: GET /"} =
+               get("http://localhost:#{sham.port}")
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert {:error, "A request was received by Sham when none were expected: GET /"} =
+                 GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+
+    test "Expectation with specific method and path" do
+      sham = Sham.start()
+
+      Sham.expect_none(sham, "POST", "/endpoint")
+
+      Sham.stub(sham, "GET", "/endpoint", fn conn ->
+        Plug.Conn.send_resp(conn, 200, "Hello world")
+      end)
+
+      assert {:ok, 200, _body} = get("http://localhost:#{sham.port}/endpoint")
+
+      on_exit({Sham.Instance, sham.pid}, fn ->
+        assert :ok = GenServer.call(sham.pid, :on_exit)
+      end)
+    end
+  end
+
   describe "stub" do
     test "callback" do
       sham = Sham.start(ssl: false)
