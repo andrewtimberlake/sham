@@ -115,7 +115,7 @@ defmodule Sham do
   end
 
   @doc """
-  Expect at most one call to the Sham instance using any method and at any path.
+  Expect exactly one call to the Sham instance using any method and at any path.
 
   You can stack multiple calls to `expect_once/4` to expect multiple requests.
 
@@ -149,7 +149,7 @@ defmodule Sham do
   end
 
   @doc """
-  Expect at most one call to the Sham instance using the given method and path.
+  Expect exactly one call to the Sham instance using the given method and path.
 
   You can stack multiple calls to `expect_once/4` to expect multiple requests.
 
