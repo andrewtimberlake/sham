@@ -2,7 +2,9 @@ defmodule Sham do
   @derive {Inspect, only: [:port]}
   defstruct pid: nil, port: nil
 
-  @opaque t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          port: pos_integer()
+        }
 
   @moduledoc """
   Sham is a mock HTTP(S) server useful for testing HTTP(S) clients.
