@@ -20,6 +20,8 @@ defmodule Sham.Instance do
     with {:ok, opts} <- configure_opts(Keyword.merge(opts, port: port)),
          {:ok, server_ref} <- start_server(opts) do
       {:ok, %State{port: port, server_ref: server_ref, opts: opts, expectations: [], errors: []}}
+    else
+      {:error, error} -> {:stop, error}
     end
   end
 
