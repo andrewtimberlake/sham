@@ -37,7 +37,8 @@ defmodule Sham.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:plug_cowboy, "~> 2.0"},
+      {:plug_cowboy, "~> 2.0", optional: true},
+      {:bandit, "~> 1.0", optional: true},
       {:mint, "~> 1.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]

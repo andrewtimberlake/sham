@@ -4,7 +4,7 @@ defmodule Sham.Instance do
 
   defmodule State do
     @moduledoc false
-    defstruct port: nil, cowboy_ref: nil, opts: nil, expectations: nil, errors: nil
+    defstruct port: nil, server_ref: nil, opts: nil, expectations: nil, errors: nil
   end
 
   def start_link(opts \\ []) do
@@ -16,41 +16,117 @@ defmodule Sham.Instance do
     {:ok, socket} = open_socket()
     {:ok, port} = get_port(socket)
     :inet.close(socket)
-    cowboy_ref = make_ref()
 
-    result =
-      if Keyword.get(opts, :ssl, false) do
-        with keyfile <-
-               Keyword.get(opts, :keyfile, Application.app_dir(:sham, "priv/ssl/key.pem")),
-             {:keyfile, true} <- {:keyfile, File.exists?(keyfile)},
-             certfile <-
-               Keyword.get(opts, :certfile, Application.app_dir(:sham, "priv/ssl/cert.pem")),
-             {:certfile, true} <- {:certfile, File.exists?(certfile)} do
-          Plug.Cowboy.https(Sham.Plug, [pid: self()],
-            ref: cowboy_ref,
-            port: port,
-            keyfile: keyfile,
-            certfile: certfile
+    with {:ok, opts} <- configure_opts(Keyword.merge(opts, port: port)),
+         {:ok, server_ref} <- start_server(opts) do
+      {:ok, %State{port: port, server_ref: server_ref, opts: opts, expectations: [], errors: []}}
+    end
+  end
+
+  defp configure_opts(opts, acc \\ [])
+  defp configure_opts([], acc), do: validate_opts(Map.new(acc))
+
+  defp configure_opts([{:port, port} | opts], acc) do
+    configure_opts(opts, [{:port, port} | acc])
+  end
+
+  defp configure_opts([{:ssl, ssl} | opts], acc) do
+    configure_opts(opts, [{:ssl, ssl} | acc])
+  end
+
+  defp configure_opts([{:keyfile, keyfile} | opts], acc) do
+    configure_opts(opts, [{:keyfile, keyfile} | acc])
+  end
+
+  defp configure_opts([{:certfile, certfile} | opts], acc) do
+    configure_opts(opts, [{:certfile, certfile} | acc])
+  end
+
+  defp configure_opts([_other | opts], acc), do: configure_opts(opts, acc)
+
+  defp validate_opts(opts) do
+    opts = set_default_opts(opts)
+
+    if Map.get(opts, :ssl) do
+      with true <- is_binary(opts.keyfile) and File.exists?(opts.keyfile),
+           true <- is_binary(opts.certfile) and File.exists?(opts.certfile) do
+        {:ok, opts}
+      else
+        nil -> {:error, "keyfile and certfile are required when ssl is true"}
+        false -> {:error, "keyfile and certfile must exist when ssl is true"}
+      end
+    else
+      {:ok, opts}
+    end
+  end
+
+  defp set_default_opts(opts) do
+    opts
+    |> Map.put_new(:ssl, false)
+    |> Map.put_new(:keyfile, Application.app_dir(:sham, "priv/ssl/key.pem"))
+    |> Map.put_new(:certfile, Application.app_dir(:sham, "priv/ssl/cert.pem"))
+    |> Map.put_new_lazy(:server, fn ->
+      server = Application.get_env(:sham, :server)
+
+      if server do
+        server
+      else
+        cond do
+          match?({:module, _}, Code.ensure_compiled(Bandit)) ->
+            :bandit
+
+          match?({:module, _}, Code.ensure_compiled(Plug.Cowboy)) ->
+            :plug_cowboy
+
+          true ->
+            raise "No supported server found. Please add one of the following to your deps: bandit, plug_cowboy"
+        end
+      end
+    end)
+  end
+
+  if match?({:module, _}, Code.ensure_compiled(Bandit)) do
+    defp start_server(%{server: :bandit} = opts) do
+      server_opts = [port: opts.port, startup_log: false, plug: {Sham.Plug, pid: self()}]
+
+      server_opts =
+        if opts.ssl do
+          Keyword.merge(server_opts,
+            scheme: :https,
+            keyfile: opts.keyfile,
+            certfile: opts.certfile
           )
         else
-          {:keyfile, false} ->
-            {:error, "keyfile does not exist at #{Keyword.get(opts, :keyfile)}"}
-
-          {:certfile, false} ->
-            {:error, "certfile does not exist at #{Keyword.get(opts, :certfile)}"}
+          server_opts
         end
-      else
-        Plug.Cowboy.http(Sham.Plug, [pid: self()], ref: cowboy_ref, port: port)
-      end
 
-    case result do
-      {:ok, _pid} ->
-        {:ok,
-         %State{port: port, cowboy_ref: cowboy_ref, opts: opts, expectations: [], errors: []}}
-
-      {:error, error} ->
-        {:stop, error}
+      {:ok, pid} = Bandit.start_link(server_opts)
+      {:ok, {:bandit, pid}}
     end
+  end
+
+  if match?({:module, _}, Code.ensure_compiled(Plug.Cowboy)) do
+    defp start_server(%{server: :plug_cowboy} = opts) do
+      server_ref = make_ref()
+
+      {:ok, _pid} =
+        if opts.ssl do
+          Plug.Cowboy.https(Sham.Plug, [pid: self()],
+            ref: server_ref,
+            port: opts.port,
+            keyfile: opts.keyfile,
+            certfile: opts.certfile
+          )
+        else
+          Plug.Cowboy.http(Sham.Plug, [pid: self()], ref: server_ref, port: opts.port)
+        end
+
+      {:ok, {:plug_cowboy, server_ref}}
+    end
+  end
+
+  defp start_server(%{server: server}) do
+    raise "Unsupported server: #{inspect(server)}"
   end
 
   @impl true
@@ -133,12 +209,12 @@ defmodule Sham.Instance do
         :on_exit,
         _from,
         %{
-          cowboy_ref: cowboy_ref,
+          server_ref: server_ref,
           errors: errors,
           expectations: expectations
         } = state
       ) do
-    Plug.Cowboy.shutdown(cowboy_ref)
+    shutdown_server(server_ref)
 
     case errors do
       [error | _] ->
@@ -147,6 +223,14 @@ defmodule Sham.Instance do
       [] ->
         {:stop, :normal, parse_expectation_results(expectations, state), nil}
     end
+  end
+
+  defp shutdown_server({:bandit, pid}) do
+    GenServer.stop(pid)
+  end
+
+  defp shutdown_server({:plug_cowboy, server_ref}) do
+    Plug.Cowboy.shutdown(server_ref)
   end
 
   defp did_exceed?(expectations, method, path) do
@@ -216,7 +300,7 @@ defmodule Sham.Instance do
   end
 
   defp scheme(%State{opts: opts}) do
-    if(Keyword.get(opts, :ssl, false), do: "HTTPS", else: "HTTP")
+    if opts.ssl, do: "HTTPS", else: "HTTP"
   end
 
   defp method_error(nil), do: ""
