@@ -39,8 +39,7 @@ defmodule ShamTest do
         get("http://localhost:#{sham.port}/wat")
 
         on_exit({Sham.Instance, sham.pid}, fn ->
-          assert {:exception, {%ExUnit.AssertionError{}, _}} =
-                   GenServer.call(sham.pid, :on_exit)
+          assert {:exception, {%ExUnit.AssertionError{}, _}} = GenServer.call(sham.pid, :on_exit)
         end)
       end
 
@@ -248,8 +247,7 @@ defmodule ShamTest do
         get("http://localhost:#{sham.port}")
 
         on_exit({Sham.Instance, sham.pid}, fn ->
-          assert {:exception, {%ExUnit.AssertionError{}, _}} =
-                   GenServer.call(sham.pid, :on_exit)
+          assert {:exception, {%ExUnit.AssertionError{}, _}} = GenServer.call(sham.pid, :on_exit)
         end)
       end
 
@@ -448,8 +446,7 @@ defmodule ShamTest do
         assert body == "Hello world"
 
         on_exit({Sham.Instance, sham.pid}, fn ->
-          assert {:exception, {%ExUnit.AssertionError{}, _}} =
-                   GenServer.call(sham.pid, :on_exit)
+          assert {:exception, {%ExUnit.AssertionError{}, _}} = GenServer.call(sham.pid, :on_exit)
         end)
       end
     end
