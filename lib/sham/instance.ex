@@ -62,11 +62,24 @@ defmodule Sham.Instance do
     end
   end
 
+  @key File.read!(Path.join([__DIR__, "../../test/ssl/key.pem"]))
+  @cert File.read!(Path.join([__DIR__, "../../test/ssl/cert.pem"]))
+
   defp set_default_opts(opts) do
     opts
     |> Map.put_new(:ssl, false)
-    |> Map.put_new(:keyfile, Path.join([__DIR__, "../../test/ssl/key.pem"]))
-    |> Map.put_new(:certfile, Path.join([__DIR__, "../../test/ssl/cert.pem"]))
+    |> Map.put_new_lazy(:keyfile, fn ->
+      keyfile = Path.join(System.tmp_dir!(), "sham-#{System.unique_integer([:positive])}-key.pem")
+      File.write!(keyfile, @key)
+      keyfile
+    end)
+    |> Map.put_new_lazy(:certfile, fn ->
+      certfile =
+        Path.join(System.tmp_dir!(), "sham-#{System.unique_integer([:positive])}-cert.pem")
+
+      File.write!(certfile, @cert)
+      certfile
+    end)
     |> Map.put_new_lazy(:server, fn ->
       server = Application.get_env(:sham, :server)
 
@@ -217,6 +230,14 @@ defmodule Sham.Instance do
         } = state
       ) do
     shutdown_server(server_ref)
+
+    if state.opts[:keyfile] && Regex.match?(~r/sham-\d+-key\.pem$/, state.opts[:keyfile]) do
+      File.rm(state.opts.keyfile)
+    end
+
+    if state.opts[:certfile] && Regex.match?(~r/sham-\d+-cert\.pem$/, state.opts[:certfile]) do
+      File.rm(state.opts.certfile)
+    end
 
     case errors do
       [error | _] ->
