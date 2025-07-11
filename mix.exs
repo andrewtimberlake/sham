@@ -2,7 +2,7 @@ defmodule Sham.MixProject do
   use Mix.Project
 
   @github_url "https://github.com/andrewtimberlake/sham"
-  @version "1.2.0"
+  @version "1.2.1"
 
   def project do
     [
@@ -14,7 +14,7 @@ defmodule Sham.MixProject do
       source_url: @github_url,
       docs: fn ->
         [
-          source_ref: "v#{@version}",
+          source_ref: "#{@version}",
           canonical: "http://hexdocs.pm/sham",
           main: "Sham",
           source_url: @github_url,
