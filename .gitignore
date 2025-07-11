@@ -26,3 +26,4 @@ sham-*.tar
 /tmp/
 
 .vscode
+.tool-versions
