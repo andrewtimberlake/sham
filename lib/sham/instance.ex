@@ -62,22 +62,77 @@ defmodule Sham.Instance do
     end
   end
 
-  @key File.read!(Path.join([__DIR__, "../../test/ssl/key.pem"]))
-  @cert File.read!(Path.join([__DIR__, "../../test/ssl/cert.pem"]))
+  # I’m really not sure if this is the best way to have auto-supplied test key/cert files
+  @key """
+  -----BEGIN PRIVATE KEY-----
+  MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCuMIAq0OLRzm9S
+  mY70JuAqDz6tnXCp050HfPGXmTSFWmYk9GKs+ie5yWrNX64vBqpfP0zdVbCivrn2
+  ul2fNXQA8TdVFp+L+mqvNq2tFPc4Os0BRZyOg+EVEl+sNFqDElaojJuSW+YeNyAx
+  KMSG+2Yg5HCTAFApWzAfJGkwXUrUegNEddKxPzs6AP9SGYbONyaynwc+B+GRQCij
+  RvU5ouxhbqg93wdeo8ZljWZdOetf1/9RlMZAMazU5FhtZ0Jkgx8+ghovCqaqxcmL
+  1hZsrXUC1CRIwuelzv5jplmIJXO5RmdTDhzTmKZxI/4j0yi2yXU8vmkeh1J/m3jQ
+  H39nctLxAgMBAAECggEAAM+seMzMLKCemR5VK1/SnSwythegv0VlErDgHPe73UQZ
+  CGRRZIW2wJRem64tv5v/rYeWuYET5wlaHtIzOFnW1G5gfc7oBLc14LEsSGffRy4o
+  UE0AWmVdoNsndazbjHjDQqcYQ6KZlXWCgCfjG+wEbsehWsfLy1T0/aw/2yJMpijS
+  FdtwKzS2T0F+YtVFMNEu3+ZMWPsqqk8nM91DzhtqF8pyB+pIkdkJcu6t8JN1JrkY
+  4tou+ekC3dEwG37XLNabxqbOJiwidPXu7wOWisHkv43UXmUp4OEFsF+xGc3jkJvr
+  SW3DD+QLRKTRHm7gghiSCDh4cbL1vu9YFr33g0UhQQKBgQDmlj0l7kvHpyFvkvg4
+  4M6Y+LNka4Z2hFz1is/54phix0CtGC4I15Lqoxp+ngHFbdq7pktXQqf57IjPbXZd
+  lD3kdkX4JBUkMXaGPK+OF4te+0au3UnUdrlR/qRaSsleOn1B6QKFNNRHhk2UM3Ir
+  fl41+gxyOrz852xJVmw328M0sQKBgQDBYxG6EQmPgDCNDiZ/XpyiXpEm9B0Tfapk
+  s4b613W64yvaZsBX4OpFhUOAL4MGozk+GLJ/RfXyBydPdhjn7OTMr/6PBI2ANDFo
+  LUkApfyrYg4Y4ZZsUWxAplIgAD0JntW4uDZRbVfYoRuEyO6N9Pqi3mRnnjavOC01
+  Wx7l144SQQKBgDNKpBt14GFu6d8ZwCFW0F3ypGToDib61nq///dD0kXWsKpQQJ0y
+  5rlOwqv7lcVG5GrtWMD2UMslNGF/pd63BPV24aWK0TEV15mQkjR3REdCebyX+L5M
+  EnkMvZ5gGF7ff9FTdX4P/FBUrZkTwIewOmCjWHVoX3WaPNorYTMjrU5hAoGAWPtH
+  rdCnEINQU6b+Kb8T3VYb/ct3EX/SBlHgusym3B4pEG4U9JqF0QU3gOTbqhMyhJMC
+  lrNPLlUCTnqtjRGgWVpli9LxdNsPHLsxiv3VG9qbV/F8sExqvfiJczYI38NY3YzN
+  WXwxXnkK23dE5MajCIvBsTfIO6lii9lohyM+uMECgYBZ6cYoPnaimZyBBqRYXi5i
+  HSaZK5/1SppcSLTqh4kx/geaonuQX+m5BbHnCNaBInJzEEgYLjQ9jPJVTwiueaws
+  NDIsuVBYBmgdpHhTemeI+9EbqAfL71q3YkGpAC9lk+dNtsoLsu29EBRrZm0v9+CX
+  Zy2pa/rmNE+05zAqIBQ2EQ==
+  -----END PRIVATE KEY-----
+  """
+  @cert """
+    -----BEGIN CERTIFICATE-----
+  MIIEGzCCAwOgAwIBAgIUWBSAoSsaXQizu1PST/7pdUN4GI0wDQYJKoZIhvcNAQEL
+  BQAwgZwxCzAJBgNVBAYTAlpBMRAwDgYDVQQIDAdHYXV0ZW5nMRUwEwYDVQQHDAxK
+  b2hhbm5lc2J1cmcxDTALBgNVBAoMBFNoYW0xDTALBgNVBAsMBHRlc3QxGjAYBgNV
+  BAMMEUFuZHJldyBUaW1iZXJsYWtlMSowKAYJKoZIhvcNAQkBFhthbmRyZXdAYW5k
+  cmV3dGltYmVybGFrZS5jb20wHhcNMjUwNzExMTMyOTAwWhcNMzUwNzA5MTMyOTAw
+  WjCBnDELMAkGA1UEBhMCWkExEDAOBgNVBAgMB0dhdXRlbmcxFTATBgNVBAcMDEpv
+  aGFubmVzYnVyZzENMAsGA1UECgwEU2hhbTENMAsGA1UECwwEdGVzdDEaMBgGA1UE
+  AwwRQW5kcmV3IFRpbWJlcmxha2UxKjAoBgkqhkiG9w0BCQEWG2FuZHJld0BhbmRy
+  ZXd0aW1iZXJsYWtlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+  AK4wgCrQ4tHOb1KZjvQm4CoPPq2dcKnTnQd88ZeZNIVaZiT0Yqz6J7nJas1fri8G
+  ql8/TN1VsKK+ufa6XZ81dADxN1UWn4v6aq82ra0U9zg6zQFFnI6D4RUSX6w0WoMS
+  VqiMm5Jb5h43IDEoxIb7ZiDkcJMAUClbMB8kaTBdStR6A0R10rE/OzoA/1IZhs43
+  JrKfBz4H4ZFAKKNG9Tmi7GFuqD3fB16jxmWNZl0561/X/1GUxkAxrNTkWG1nQmSD
+  Hz6CGi8KpqrFyYvWFmytdQLUJEjC56XO/mOmWYglc7lGZ1MOHNOYpnEj/iPTKLbJ
+  dTy+aR6HUn+beNAff2dy0vECAwEAAaNTMFEwHQYDVR0OBBYEFLfRpaF+erim0ZPc
+  MukfAZMcBWUWMB8GA1UdIwQYMBaAFLfRpaF+erim0ZPcMukfAZMcBWUWMA8GA1Ud
+  EwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAI9rS7Tpu4YlVDID7q+WtasT
+  HrrlY/NITTWSmICtknly8yn34ZB6MyHKdQliShkN7kPyKfUoYekeEw66leaVKrhX
+  oM1QjCmyMgtDkMRo6yQduCsonIpg4PVjEjNmpYLYypG+r/KHo4AdJll0XaSqdEdu
+  uGW/B6t55fdXwZ0VF0fmhae/lLNur5VYuyUBKk9kAo9pMuis7AcQwJmFZXn87HcD
+  CE3vBca7XuFxN9+DQ13YXfFz17dsed/T/MDm5V/evyClDO/u3n8Kicd01ssxssLP
+  yerSi/kSvrCBRnnb61o5wRMFBzQyBrxOCWor57PmZa8Wnq0xZh+ZtzIZdgKzhVk=
+  -----END CERTIFICATE-----
+  """
 
   defp set_default_opts(opts) do
     opts
     |> Map.put_new(:ssl, false)
     |> Map.put_new_lazy(:keyfile, fn ->
       keyfile = Path.join(System.tmp_dir!(), "sham-#{System.unique_integer([:positive])}-key.pem")
-      File.write!(keyfile, @key)
+      File.write!(keyfile, String.trim(@key))
       keyfile
     end)
     |> Map.put_new_lazy(:certfile, fn ->
       certfile =
         Path.join(System.tmp_dir!(), "sham-#{System.unique_integer([:positive])}-cert.pem")
 
-      File.write!(certfile, @cert)
+      File.write!(certfile, String.trim(@cert))
       certfile
     end)
     |> Map.put_new_lazy(:server, fn ->
