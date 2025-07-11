@@ -71,6 +71,16 @@ Sham.expect(sham, "POST", "/", fn conn ->
 end)
 ```
 
+#### Raw body
+
+```elixir
+Sham.expect(sham, "POST", "/", fn conn ->
+  {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+  assert body == "raw body"
+end)
+```
+
 ## Installation
 
 The package can be installed by adding `sham` to your list of dependencies in `mix.exs`:
