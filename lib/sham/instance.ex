@@ -65,8 +65,8 @@ defmodule Sham.Instance do
   defp set_default_opts(opts) do
     opts
     |> Map.put_new(:ssl, false)
-    |> Map.put_new(:keyfile, Application.app_dir(:sham, "priv/ssl/key.pem"))
-    |> Map.put_new(:certfile, Application.app_dir(:sham, "priv/ssl/cert.pem"))
+    |> Map.put_new(:keyfile, Path.join([__DIR__, "../../test/ssl/key.pem"]))
+    |> Map.put_new(:certfile, Path.join([__DIR__, "../../test/ssl/cert.pem"]))
     |> Map.put_new_lazy(:server, fn ->
       server = Application.get_env(:sham, :server)
 
