@@ -307,8 +307,10 @@ defmodule Sham.Instance do
     GenServer.stop(pid)
   end
 
-  defp shutdown_server({:plug_cowboy, server_ref}) do
-    Plug.Cowboy.shutdown(server_ref)
+  if Code.ensure_loaded?(Plug.Cowboy) do
+    defp shutdown_server({:plug_cowboy, server_ref}) do
+      Plug.Cowboy.shutdown(server_ref)
+    end
   end
 
   defp did_exceed?(expectations, method, path) do
