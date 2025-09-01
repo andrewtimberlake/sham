@@ -208,6 +208,23 @@ defmodule ShamTest do
                    GenServer.call(sham.pid, :on_exit)
         end)
       end
+
+      test "expectation with timeout" do
+        sham = Sham.start(ssl: false)
+
+        Sham.expect(sham, fn conn ->
+          Process.sleep(2000)
+          Plug.Conn.send_resp(conn, 200, "Hello world")
+        end)
+
+        assert {:error, _, %Mint.TransportError{reason: :timeout}, _} =
+                 get("http://localhost:#{sham.port}", timeout: 100)
+
+        on_exit({Sham.Instance, sham.pid}, fn ->
+          assert {:error, "No HTTP request was received by Sham"} =
+                   GenServer.call(sham.pid, :on_exit)
+        end)
+      end
     end
 
     describe "expect_once (with #{server})" do
@@ -351,6 +368,23 @@ defmodule ShamTest do
                    GenServer.call(sham.pid, :on_exit)
         end)
       end
+
+      test "expectation with timeout" do
+        sham = Sham.start(ssl: false)
+
+        Sham.expect_once(sham, fn conn ->
+          Process.sleep(2000)
+          Plug.Conn.send_resp(conn, 200, "Hello world")
+        end)
+
+        assert {:error, _, %Mint.TransportError{reason: :timeout}, _} =
+                 get("http://localhost:#{sham.port}", timeout: 100)
+
+        on_exit({Sham.Instance, sham.pid}, fn ->
+          assert {:error, "No HTTP request was received by Sham"} =
+                   GenServer.call(sham.pid, :on_exit)
+        end)
+      end
     end
 
     describe "expect_none (with #{server})" do
@@ -447,6 +481,22 @@ defmodule ShamTest do
 
         on_exit({Sham.Instance, sham.pid}, fn ->
           assert {:exception, {%ExUnit.AssertionError{}, _}} = GenServer.call(sham.pid, :on_exit)
+        end)
+      end
+
+      test "expectation with timeout" do
+        sham = Sham.start(ssl: false)
+
+        Sham.stub(sham, fn conn ->
+          Process.sleep(2000)
+          Plug.Conn.send_resp(conn, 200, "Hello world")
+        end)
+
+        assert {:error, _, %Mint.TransportError{reason: :timeout}, _} =
+                 get("http://localhost:#{sham.port}", timeout: 100)
+
+        on_exit({Sham.Instance, sham.pid}, fn ->
+          assert :ok = GenServer.call(sham.pid, :on_exit)
         end)
       end
     end

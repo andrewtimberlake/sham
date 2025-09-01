@@ -279,13 +279,10 @@ defmodule Sham.Instance do
         :on_exit,
         _from,
         %{
-          server_ref: server_ref,
           errors: errors,
           expectations: expectations
         } = state
       ) do
-    shutdown_server(server_ref)
-
     if state.opts[:keyfile] && Regex.match?(~r/sham-\d+-key\.pem$/, state.opts[:keyfile]) do
       File.rm(state.opts.keyfile)
     end
@@ -300,16 +297,6 @@ defmodule Sham.Instance do
 
       [] ->
         {:stop, :normal, parse_expectation_results(expectations, state), nil}
-    end
-  end
-
-  defp shutdown_server({:bandit, pid}) do
-    GenServer.stop(pid)
-  end
-
-  if Code.ensure_loaded?(Plug.Cowboy) do
-    defp shutdown_server({:plug_cowboy, server_ref}) do
-      Plug.Cowboy.shutdown(server_ref)
     end
   end
 
